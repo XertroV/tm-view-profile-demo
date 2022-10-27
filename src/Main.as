@@ -1,10 +1,22 @@
 const string PageUID = "AutosaveGhosts";
 uint g_numSaved = 0;
+bool permissionsOkay = false;
 
 void Main() {
+    CheckRequiredPermissions();
     MLHook::RequireVersionApi('0.3.2');
     @hook = AutosaveGhostEvents();
     startnew(InitCoro);
+}
+
+void CheckRequiredPermissions() {
+    permissionsOkay = Permissions::CreateLocalReplay()
+        && Permissions::PlayAgainstReplay() && false
+        && Permissions::OpenReplayEditor();
+    if (!permissionsOkay) {
+        NotifyWarn("You appear not to have club access.\n\nThis plugin won't work, sorry :(.");
+        while(true) { sleep(10000); } // do nothing forever
+    }
 }
 
 void OnDestroyed() { _Unload(); }
@@ -18,6 +30,7 @@ void _Unload() {
 
 AutosaveGhostEvents@ hook = null;
 void InitCoro() {
+    if (!permissionsOkay) return;
     // MLHook::RegisterMLHook(hook);
     MLHook::RegisterMLHook(hook, PageUID + "_SavedGhost");
     sleep(50);
@@ -29,6 +42,7 @@ void InitCoro() {
 }
 
 void MainCoro() {
+    if (!permissionsOkay) return;
     uint lastDateUpdate = 0;
     while (true) {
         yield();
@@ -126,8 +140,15 @@ void NotifyForceSave() {
     trace(msg);
 }
 
+void NotifyWarn(const string &in msg) {
+    UI::ShowNotification(Meta::ExecutingPlugin().Name, msg, vec4(1, .5, .1, .5), 10000);
+    warn(msg);
+}
+
+
 /** Called when a setting in the settings panel was changed. */
 void OnSettingsChanged() {
+    if (!permissionsOkay) return;
     UpdateAllMLVariables();
 }
 
@@ -138,6 +159,7 @@ const string get_HotkeyStr() {
 bool i_shiftKeyDown = false;
 /** Called whenever a key is pressed on the keyboard. See the documentation for the [`VirtualKey` enum](https://openplanet.dev/docs/api/global/VirtualKey). */
 UI::InputBlocking OnKeyPress(bool down, VirtualKey key) {
+    if (!permissionsOkay) return UI::InputBlocking::DoNothing;
     if (key == VirtualKey::Shift) i_shiftKeyDown = down;
     if (down) {
         if (S_HotkeyEnabled && key == S_Hotkey) {
@@ -151,6 +173,7 @@ void RenderInterface() {
 }
 
 void RenderMenu() {
+    if (!permissionsOkay) return;
     if (UI::MenuItem("\\$f22" + Icons::Circle + "\\$z Autosave Ghosts", HotkeyStr, S_AutosaveActive)) {
         ToggleAutosaveActive();
     }
@@ -159,6 +182,7 @@ void RenderMenu() {
 bool isMenuMainHovered = false;
 /** Render function called every frame intended only for menu items in the main menu of the `UI`.*/
 void RenderMenuMain() {
+    if (!permissionsOkay) return;
     isMenuMainHovered = false;
     bool shouldRender = S_MenuBarQuickToggleOff && S_AutosaveActive || S_MenuBarQuickToggleOn && !S_AutosaveActive;
     if (!shouldRender) return;
