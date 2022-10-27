@@ -1,5 +1,5 @@
 const string AUTOSAVEGHOSTS_SCRIPT_TXT = """
-// one line indent otherwise they're treated as compiler preprocessor statements by openplanet
+// one space indent otherwise they're treated as compiler preprocessor statements by openplanet
  #Const C_PageUID "AutosaveGhosts"
  #Include "TextLib" as TL
 
