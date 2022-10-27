@@ -57,8 +57,15 @@ void ToggleAutosaveActive() {
     UpdateMLAutosaveActive();
 }
 
+// crucially: used in UpdateMLAutosaveActive
+bool get_AutosaveCurrentlyActive() {
+    if (!S_AutosaveActive) return false;
+    if (S_DisableForLocal && GetApp().PlaygroundScript !is null) return false;
+    return true;
+}
+
 void UpdateMLAutosaveActive() {
-    MLHook::Queue_MessageManialinkPlayground(PageUID, {"AutosaveActive", S_AutosaveActive ? "True" : "False"});
+    MLHook::Queue_MessageManialinkPlayground(PageUID, {"AutosaveActive", AutosaveCurrentlyActive ? "True" : "False"});
 }
 
 void ForceSaveAllGhosts() {
@@ -202,6 +209,9 @@ bool S_MenuBarQuickToggleOff = true;
 
 [Setting category="Autosave Ghosts" name="MenuBar Quick Toggle On" description="Show a button in the main menu bar to quickly toggle autosaving on (start saving replays)."]
 bool S_MenuBarQuickToggleOn = false;
+
+[Setting category="Autosave Ghosts" name="Disable for Local Modes" description="When checked, replays will not be autosaved for local runs."]
+bool S_DisableForLocal = false;
 
 [Setting category="Autosave Ghosts" name="Hotkey Enabled" description="The hotkey will only work if this is checked."]
 bool S_HotkeyEnabled = true;
