@@ -1,9 +1,14 @@
 const string AUTOSAVEGHOSTS_SCRIPT_TXT = """
+// one line indent otherwise they're treated as compiler preprocessor statements by openplanet
+ #Const C_PageUID "AutosaveGhosts"
+ #Include "TextLib" as TL
+
+
 declare Text G_PreviousMapUid;
 
 // logging function, should be "MLHook_LogMe_" + PageUID
 Void MLHookLog(Text msg) {
-    SendCustomEvent("MLHook_LogMe_AutosaveGhosts", [msg]);
+    SendCustomEvent("MLHook_LogMe_"^C_PageUID, [msg]);
 }
 
 /// Convert a C++ array to a script array
@@ -27,6 +32,8 @@ declare Text CurrentDateText;
 declare Boolean SetCurrentDateText;
 declare Text MapNameSafe;
 declare Boolean SetMapNameSafe;
+declare Boolean AutosaveActive;
+declare Boolean SetAutosaveActive;
 
 Void CheckIncoming() {
     declare Text[][] MLHook_Inbound_AutosaveGhosts for ClientUI;
@@ -40,11 +47,14 @@ Void CheckIncoming() {
         } else if (Event[0] == "MapNameSafe") {
             MapNameSafe = Event[1];
             SetMapNameSafe = True;
+        } else if (Event[0] == "AutosaveActive") {
+            AutosaveActive = Event[1] == "True";
+            SetAutosaveActive = True;
         } else {
             MLHookLog("Skipped unknown incoming event: " ^ Event);
             continue;
         }
-        MLHookLog("Processed Incoming Event: "^Event[0]);
+        // MLHookLog("Processed Incoming Event: "^Event[0]);
     }
     MLHook_Inbound_AutosaveGhosts = [];
 }
@@ -52,8 +62,8 @@ Void CheckIncoming() {
 Text GetGhostFileName(CGhost Ghost) {
     declare Text Name = Ghost.Nickname;
     declare Integer GTime = Ghost.Result.Time;
-    declare Text TheDate = System.CurrentLocalDateText;
-    TheDate = CurrentDateText;
+    declare Text TheDate = TL::Replace(TL::Replace(System.CurrentLocalDateText, "/", "-"), ":", "-");
+    // TheDate = CurrentDateText;
     declare Text MapName = MapNameSafe;
     return "AutosavedGhosts\\" ^ MapName ^ "\\" ^ TheDate ^ "-" ^ MapName ^ "-" ^ Name ^ "-" ^ GTime ^ "ms.Replay.gbx";
 }
@@ -61,6 +71,7 @@ Text GetGhostFileName(CGhost Ghost) {
 declare Boolean[Ident] SeenGhosts;
 declare Integer[][][Integer] SeenTimes;
 declare Integer NbLastSeen;
+declare Integer OnlySaveAfter;
 
 // will only return true for a ghost the first time it is seen
 Boolean ShouldSaveGhost(CGhost Ghost) {
@@ -72,7 +83,7 @@ Boolean ShouldSaveGhost(CGhost Ghost) {
     foreach (CpTimes in SeenTimes[Ghost.Result.Time]) { // inside the for loop we'll return if we find a reason to not save this ghost
         if (CpTimes.count != GhostCPs.count) continue; // CPs differ so can't be the same
         declare Boolean IsIdentical = True;
-        for (i, 0, CpTimes.count) {
+        for (i, 0, CpTimes.count - 1) {
             if (CpTimes[i] != GhostCPs[i]) { // if CP times differ, we'll always hit this
                 IsIdentical = False; // so the ghosts differ
                 break;
@@ -89,6 +100,15 @@ Void RecordSeen(CGhost Ghost) {
         SeenTimes[Ghost.Result.Time] = [];
     }
     SeenTimes[Ghost.Result.Time].add(ToScriptArray(Ghost.Result.Checkpoints));
+}
+
+// when we first load the plugin, any existing ghosts are ignored
+Void OnFirstLoad() {
+    NbLastSeen = DataFileMgr.Ghosts.count;
+    foreach (Ghost in DataFileMgr.Ghosts) {
+        RecordSeen(Ghost);
+        yield;
+    }
 }
 
 Void CheckGhostsCPData() {
@@ -108,8 +128,17 @@ Void CheckGhostsCPData() {
             GhostsToSave.add(Ghost);
         }
     }
-    foreach (Ghost in GhostsToSave) {
-        DataFileMgr.Replay_Save(GetGhostFileName(Ghost), Map, Ghost);
+    // don't save ghosts in the first 10s of loading a map -- just record that we've seen them.
+    // they'll ~never be new ghosts.
+    if (Now > OnlySaveAfter && AutosaveActive) {
+        foreach (Ghost in GhostsToSave) {
+            declare Text ReplayFileName = GetGhostFileName(Ghost);
+            DataFileMgr.Replay_Save(ReplayFileName, Map, Ghost);
+            SendCustomEvent("MLHook_Event_" ^ C_PageUID ^ "_SavedGhost", [ReplayFileName]);
+            MLHookLog("Saved Ghost: " ^ ReplayFileName);
+        }
+    } else {
+        MLHookLog("Skipping " ^ GhostsToSave.count ^ " ghosts due to OnlySaveAfter or AutosaveActive");
     }
 }
 
@@ -119,6 +148,8 @@ Void ResetGhostsState() {
     SeenTimes.clear();
     SetMapNameSafe = False;
     SetCurrentDateText = False;
+    OnlySaveAfter = Now + 10000;
+    MLHookLog("Reset ghosts state.");
 }
 
 Void OnMapChange() {
@@ -129,17 +160,18 @@ Void OnMapChange() {
 main() {
     declare Integer LoopCounter = 0;
     MLHookLog("Starting AutosaveGhosts Feed");
+    yield;
+    ResetGhostsState();
+    // OnFirstLoad();
     while (True) {
         yield;
+        LoopCounter += 1;
+        CheckIncoming();
+
+        // main logic
         CheckGhostsCPData();
         CheckMapChange();
         if (MapChanged) OnMapChange();
-        LoopCounter += 1;
-        if (LoopCounter > 120 && LoopCounter % 60 == 0) {
-        }
-        if (LoopCounter % 60 == 2) {
-            CheckIncoming();
-        }
     }
 }
 """;
