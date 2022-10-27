@@ -11,7 +11,9 @@ void OnDestroyed() { _Unload(); }
 void OnDisabled() { _Unload(); }
 void _Unload() {
     trace('_Unload, unloading hooks and removing injected ML');
-    MLHook::UnregisterMLHooksAndRemoveInjectedML();
+    // MLHook::UnregisterMLHooksAndRemoveInjectedML();
+    MLHook::UnregisterMLHookFromAll(hook);
+    MLHook::RemoveInjectedMLFromPlayground(PageUID);
 }
 
 AutosaveGhostEvents@ hook = null;
@@ -34,11 +36,11 @@ void MainCoro() {
             lastMap = CurrentMap;
             OnMapChange();
         }
-        // 5 second resolution instead of 1 but cuts down on log msgs about preparing outbound
-        if (lastDateUpdate + 5000 < Time::Now) {
-            lastDateUpdate = Time::Now;
-            UpdateMLDate();
-        }
+        // // 5 second resolution instead of 1 but cuts down on log msgs about preparing outbound
+        // if (lastDateUpdate + 5000 < Time::Now) {
+        //     lastDateUpdate = Time::Now;
+        //     UpdateMLDate();
+        // }
     }
 }
 
@@ -47,13 +49,22 @@ void OnMapChange() {
 }
 
 void UpdateAllMLVariables() {
-    MLHook::Queue_MessageManialinkPlayground(PageUID, {"MapNameSafe", MapNameSafe});
-    MLHook::Queue_MessageManialinkPlayground(PageUID, {"AutosaveActive", S_AutosaveActive ? "True" : "False"});
-    UpdateMLDate();
+    UpdateMLAutosaveActive();
 }
 
-void UpdateMLDate() {
-    MLHook::Queue_MessageManialinkPlayground(PageUID, {"CurrentDateText", CurrentDateText});
+void ToggleAutosaveActive() {
+    S_AutosaveActive = !S_AutosaveActive;
+    UpdateMLAutosaveActive();
+}
+
+void UpdateMLAutosaveActive() {
+    MLHook::Queue_MessageManialinkPlayground(PageUID, {"AutosaveActive", S_AutosaveActive ? "True" : "False"});
+}
+
+void ForceSaveAllGhosts() {
+    NotifyForceSave();
+    MLHook::Queue_MessageManialinkPlayground(PageUID, {"ResetAndSaveAll"});
+    UpdateAllMLVariables();
 }
 
 /* Hook Outgoing Notification Events */
@@ -102,10 +113,27 @@ void NotifySaved(const string &in filename) {
     UI::ShowNotification(Meta::ExecutingPlugin().Name, msg, vec4(.1, .6, .3, .3), 7500);
     trace(msg);
 }
+void NotifyForceSave() {
+    string msg = "Force-saving all of your ghosts (if none show up, there probably are none atm)";
+    UI::ShowNotification(Meta::ExecutingPlugin().Name, msg, vec4(.1, .6, .3, .3), 7500);
+    trace(msg);
+}
 
 /** Called when a setting in the settings panel was changed. */
 void OnSettingsChanged() {
     UpdateAllMLVariables();
+}
+
+bool i_shiftKeyDown = false;
+/** Called whenever a key is pressed on the keyboard. See the documentation for the [`VirtualKey` enum](https://openplanet.dev/docs/api/global/VirtualKey). */
+UI::InputBlocking OnKeyPress(bool down, VirtualKey key) {
+    if (key == VirtualKey::Shift) i_shiftKeyDown = down;
+    if (down) {
+        if (S_HotkeyEnabled && key == S_Hotkey) {
+            ToggleAutosaveActive();
+        }
+    }
+    return UI::InputBlocking::DoNothing;
 }
 
 void RenderInterface() {
@@ -113,17 +141,25 @@ void RenderInterface() {
 
 void RenderMenu() {
     if (UI::MenuItem("\\$f22" + Icons::Circle + "\\$z Autosave Ghosts", "", S_AutosaveActive)) {
-        S_AutosaveActive = !S_AutosaveActive;
+        ToggleAutosaveActive();
     }
 }
 
+bool isMenuMainHovered = false;
 /** Render function called every frame intended only for menu items in the main menu of the `UI`.*/
 void RenderMenuMain() {
-    if (!S_AutosaveActive) return;
-    bool wasClicked = UI::MenuItem("\\$f22" + Icons::Circle + "\\$z Autosaving Ghosts (" + g_numSaved + ")");
-    AddSimpleTooltip("Click to disable autosaving new ghosts.");
-    if (wasClicked) {
-        S_AutosaveActive = !S_AutosaveActive;
+    isMenuMainHovered = false;
+    bool shouldRender = S_MenuBarQuickToggleOff && S_AutosaveActive || S_MenuBarQuickToggleOn && !S_AutosaveActive;
+    if (!shouldRender) return;
+    string label = S_AutosaveActive
+        ? ("\\$f22" + Icons::Circle + "\\$z Autosaving Ghosts (" + g_numSaved + ")")
+        : ("\\$dd3" + Icons::Pause + "\\$z Autosave Ghosts");
+    bool wasClicked = UI::MenuItem(label);
+    AddSimpleTooltip(S_AutosaveActive ? "Click to disable autosaving new ghosts.\nShift click to force-save a replay of all current personal ghosts." : "Click to start autosaving new ghosts.");
+    if (wasClicked && S_AutosaveActive && i_shiftKeyDown) {
+        startnew(ForceSaveAllGhosts);
+    } else if (wasClicked && !i_shiftKeyDown) {
+        ToggleAutosaveActive();
     }
 }
 
@@ -154,3 +190,15 @@ settings
 
 [Setting category="Autosave Ghosts" name="Autosave Active?" description="While active, this plugin will autosave replays. When not active, it will sit in the background, biding its time, waiting for you to reactivate it."]
 bool S_AutosaveActive = true;
+
+[Setting category="Autosave Ghosts" name="MenuBar Quick Toggle Off" description="Show a button in the main menu bar to quickly toggle autosaving off (stop saving replays)."]
+bool S_MenuBarQuickToggleOff = true;
+
+[Setting category="Autosave Ghosts" name="MenuBar Quick Toggle On" description="Show a button in the main menu bar to quickly toggle autosaving on (start saving replays)."]
+bool S_MenuBarQuickToggleOn = false;
+
+[Setting category="Autosave Ghosts" name="Hotkey Enabled" description="The hotkey will only work if this is checked."]
+bool S_HotkeyEnabled = true;
+
+[Setting category="Autosave Ghosts" name="Hotkey" description="Hotkey to toggle saving or not."]
+VirtualKey S_Hotkey = VirtualKey::F7;

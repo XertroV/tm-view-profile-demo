@@ -4,7 +4,15 @@
 
 This plugin will autosave a playable `.Replay.gbx` file for all ghosts that you generate, even in online servers.
 This includes runs that are not PBs, but the run must be completed (it does not save partial runs).
-To save partial runs (that aren't playable), see [Autosave Replays for MediaTracker](https://openplanet.dev/plugin/autosavereplaysformt).
+To save partial runs (that aren't able to be played against), see [Autosave Replays for MediaTracker](https://openplanet.dev/plugin/autosavereplaysformt).
+
+Works in:
+* Ranked
+* COTD Quali and KO
+* Local campaign (*note:* was previously unreliable, please report any bugs; if you need an alternate solution, see [Replay Recorder](https://openplanet.dev/plugin/replayrecorder))
+
+Does not work in:
+* Royal
 
 How it works:
 When you complete a run, even in online servers, a ghost is generated.
