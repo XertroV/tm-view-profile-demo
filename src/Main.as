@@ -210,7 +210,7 @@ bool S_MenuBarQuickToggleOff = true;
 [Setting category="Autosave Ghosts" name="MenuBar Quick Toggle On" description="Show a button in the main menu bar to quickly toggle autosaving on (start saving replays)."]
 bool S_MenuBarQuickToggleOn = false;
 
-[Setting category="Autosave Ghosts" name="Disable for Local Modes" description="When checked, replays will not be autosaved for local runs."]
+[Setting category="Autosave Ghosts" name="Disable for Local Runs" description="When checked, replays will not be autosaved for local runs."]
 bool S_DisableForLocal = false;
 
 [Setting category="Autosave Ghosts" name="Hotkey Enabled" description="The hotkey will only work if this is checked."]
