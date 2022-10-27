@@ -1,0 +1,12 @@
+[meta]
+name     = "Autosave Ghosts"
+author   = "XertroV"
+category = "MLHook"
+version  = "0.3.0"
+
+[script]
+#__DEFINES__
+dependencies = ["MLHook"]
+# exports = ["Export.as"]
+# shared_exports = ["ExportShared.as"]
+# module = "MLFeed"
