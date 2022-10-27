@@ -124,6 +124,10 @@ void OnSettingsChanged() {
     UpdateAllMLVariables();
 }
 
+const string get_HotkeyStr() {
+    return S_HotkeyEnabled ? tostring(S_Hotkey) : "";
+}
+
 bool i_shiftKeyDown = false;
 /** Called whenever a key is pressed on the keyboard. See the documentation for the [`VirtualKey` enum](https://openplanet.dev/docs/api/global/VirtualKey). */
 UI::InputBlocking OnKeyPress(bool down, VirtualKey key) {
@@ -140,7 +144,7 @@ void RenderInterface() {
 }
 
 void RenderMenu() {
-    if (UI::MenuItem("\\$f22" + Icons::Circle + "\\$z Autosave Ghosts", "", S_AutosaveActive)) {
+    if (UI::MenuItem("\\$f22" + Icons::Circle + "\\$z Autosave Ghosts", HotkeyStr, S_AutosaveActive)) {
         ToggleAutosaveActive();
     }
 }
@@ -154,8 +158,10 @@ void RenderMenuMain() {
     string label = S_AutosaveActive
         ? ("\\$f22" + Icons::Circle + "\\$z Autosaving Ghosts (" + g_numSaved + ")")
         : ("\\$dd3" + Icons::Pause + "\\$z Autosave Ghosts");
-    bool wasClicked = UI::MenuItem(label);
-    AddSimpleTooltip(S_AutosaveActive ? "Click to disable autosaving new ghosts.\nShift click to force-save a replay of all current personal ghosts." : "Click to start autosaving new ghosts.");
+    bool wasClicked = UI::MenuItem(label, HotkeyStr);
+    string hotkeyExtra = S_HotkeyEnabled ? "\n\\$bbbHotkey: " + HotkeyStr + "\\$z" : "";
+    string mainTooltip = (S_AutosaveActive ? "Click to disable autosaving new ghosts.\nShift click to force-save a replay of all current personal ghosts." : "Click to start autosaving new ghosts.");
+    AddSimpleTooltip(mainTooltip + hotkeyExtra);
     if (wasClicked && S_AutosaveActive && i_shiftKeyDown) {
         startnew(ForceSaveAllGhosts);
     } else if (wasClicked && !i_shiftKeyDown) {
