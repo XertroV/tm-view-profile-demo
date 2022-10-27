@@ -11,7 +11,7 @@ void Main() {
 
 void CheckRequiredPermissions() {
     permissionsOkay = Permissions::CreateLocalReplay()
-        && Permissions::PlayAgainstReplay() && false
+        && Permissions::PlayAgainstReplay()
         && Permissions::OpenReplayEditor();
     if (!permissionsOkay) {
         NotifyWarn("You appear not to have club access.\n\nThis plugin won't work, sorry :(.");
