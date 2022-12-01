@@ -1,6 +1,7 @@
 // one space indent otherwise they're treated as compiler preprocessor statements by openplanet
- #Const C_PageUID "AutosaveGhosts"
- #Include "TextLib" as TL
+// note: now done in pre-proc-scripts.py
+#Const C_PageUID "AutosaveGhosts"
+#Include "TextLib" as TL
 
 
 declare Text G_PreviousMapUid;
@@ -151,7 +152,7 @@ Void OnMapChange() {
 
 main() {
     declare Integer LoopCounter = 0;
-    MLHookLog("Starting AutosaveGhosts Feed");
+    MLHookLog("Starting AutosaveGhosts ML");
     yield;
     ResetGhostsState();
     OnFirstLoad();

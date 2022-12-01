@@ -14,13 +14,16 @@ Works in:
 Does not work in:
 * Royal
 
+Save path: `Trackmania\Replays\AutosavedGhosts\<MapName>\<Date>-<MapName>-<Nickname>-<RaceTime>.Replay.gbx`
+
 How it works:
-When you complete a run, even in online servers, a ghost is generated.
-AFAIK, you can't save these ghosts using `DataFileMgr.Save_Replay` _from Angelscript_.
-However, if you call `DataFileMgr.Save_Replay` from ManiaLink, then it does generate a playable replay.
+When you complete a run, even in online servers, a ghost is generated in `app.Network.ClientManiaAppPlayground.DataFileMgr.Ghosts`.
+Calling `app.Network.ClientManiaAppPlayground.DataFileMgr.Replay_Save` on these ghosts will generate a valid replay (*valid* meaning: there is 1 ghost and you can is it via 'Play > Local > Against Replay').
+~~AFAIK, you can't save these ghosts using `DataFileMgr.Replay_Save` _from AngelScript_.~~ (Actually, I think you can; a future version will be refactored to do this.)
+If you call `DataFileMgr.Save_Replay` from ManiaLink, then it does generate a playable replay.
 This plugin automatically detects new ghosts, filters out duplicates (like your PB ghost) and external ghosts (e.g., the WR ghost), and saves the remaining ghosts.
 
-Save path: `Trackmania\Replays\AutosavedGhosts\<MapName>\<Date>-<MapName>-<Nickname>-<RaceTime>.Replay.gbx`
+Propz to @Orange for asking the question that lead to this plugin: ghost CP times in MLFeed.
 
 License: Public Domain
 

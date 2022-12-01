@@ -1,5 +1,6 @@
 const string AUTOSAVEGHOSTS_SCRIPT_TXT = """
 // one space indent otherwise they're treated as compiler preprocessor statements by openplanet
+// note: now done in pre-proc-scripts.py
  #Const C_PageUID "AutosaveGhosts"
  #Include "TextLib" as TL
 
@@ -152,7 +153,7 @@ Void OnMapChange() {
 
 main() {
     declare Integer LoopCounter = 0;
-    MLHookLog("Starting AutosaveGhosts Feed");
+    MLHookLog("Starting AutosaveGhosts ML");
     yield;
     ResetGhostsState();
     OnFirstLoad();
