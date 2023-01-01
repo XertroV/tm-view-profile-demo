@@ -186,10 +186,40 @@ void RenderMenuMain() {
     isMenuMainHovered = false;
     bool shouldRender = S_MenuBarQuickToggleOff && S_AutosaveActive || S_MenuBarQuickToggleOn && !S_AutosaveActive;
     if (!shouldRender) return;
-    string label = S_AutosaveActive
-        ? ("\\$f22" + Icons::Circle + "\\$z Autosaving Ghosts (" + g_numSaved + ")")
-        : ("\\$dd3" + Icons::Pause + "\\$z Autosave Ghosts");
-    bool wasClicked = UI::MenuItem(label, HotkeyStr);
+	
+	string label;
+	string recColor, labelColor;
+	if ((Time::get_Stamp() % 2 == 1)) {
+		recColor = "\\$822";
+		labelColor = "\\$666";
+	} else {
+		recColor = "\\$f22";
+		labelColor = "\\$z";
+	}
+	
+	if (S_MenuBarFloatOnRight) {
+		label = S_AutosaveActive
+			? (recColor + Icons::Circle + labelColor +" REC (" + g_numSaved + ")")
+			: ("\\$dd3" + Icons::Pause + " REC");
+	} else {
+		label = S_AutosaveActive
+			? ("\\$f22" + Icons::Circle + "\\$z Autosaving Ghosts (" + g_numSaved + ")")
+			: ("\\$dd3" + Icons::Pause + "\\$z Autosave Ghosts");
+	}
+	
+	auto pos_orig = UI::GetCursorPos();
+	auto textSize = Draw::MeasureString(label);
+	if (S_MenuBarFloatOnRight) {
+		UI::SetCursorPos(vec2(UI::GetWindowSize().x - textSize.x - S_MenuBarFloatOffset, pos_orig.y));
+	}
+
+	bool wasClicked = UI::MenuItem(label, HotkeyStr);
+	
+
+	if (S_MenuBarFloatOnRight) {
+		UI::SetCursorPos(pos_orig);
+	}
+	
     string hotkeyExtra = S_HotkeyEnabled ? "\n\\$bbbHotkey: " + HotkeyStr + "\\$z" : "";
     string mainTooltip = (S_AutosaveActive ? "Click to disable autosaving new ghosts.\nShift click to force-save a replay of all current personal ghosts." : "Click to start autosaving new ghosts.");
     AddSimpleTooltip(mainTooltip + hotkeyExtra);
@@ -233,6 +263,12 @@ bool S_MenuBarQuickToggleOff = true;
 
 [Setting category="Autosave Ghosts" name="MenuBar Quick Toggle On" description="Show a button in the main menu bar to quickly toggle autosaving on (start saving replays)."]
 bool S_MenuBarQuickToggleOn = false;
+
+[Setting category="Autosave Ghosts" name="Compact MenuBar" description="Show the menubar toggle on the right-hand side of the Overlay. You will need to manually adjust the offset to accomodate other plugins (like Clock)"]
+bool S_MenuBarFloatOnRight = false;
+
+[Setting category="Autosave Ghosts" drag name="Compact MenuBar Offset" description="How far over to put the recording indicator. A value of 200 works well for the Clock plugin."]
+int S_MenuBarFloatOffset = 0;
 
 [Setting category="Autosave Ghosts" name="Disable for Local Runs" description="When checked, replays will not be autosaved for local runs."]
 bool S_DisableForLocal = false;
