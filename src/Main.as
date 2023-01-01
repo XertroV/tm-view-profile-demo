@@ -43,18 +43,12 @@ void InitCoro() {
 
 void MainCoro() {
     if (!permissionsOkay) return;
-    uint lastDateUpdate = 0;
     while (true) {
         yield();
         if (lastMap != CurrentMap) {
             lastMap = CurrentMap;
             OnMapChange();
         }
-        // // 5 second resolution instead of 1 but cuts down on log msgs about preparing outbound
-        // if (lastDateUpdate + 5000 < Time::Now) {
-        //     lastDateUpdate = Time::Now;
-        //     UpdateMLDate();
-        // }
     }
 }
 
@@ -186,40 +180,38 @@ void RenderMenuMain() {
     isMenuMainHovered = false;
     bool shouldRender = S_MenuBarQuickToggleOff && S_AutosaveActive || S_MenuBarQuickToggleOn && !S_AutosaveActive;
     if (!shouldRender) return;
-	
-	string label;
-	string recColor, labelColor;
-	if ((Time::get_Stamp() % 2 == 1)) {
+
+	string label, recColor, labelColor;
+	if (Time::Stamp % 2 == 1 && S_OscillateColors) {
 		recColor = "\\$822";
 		labelColor = "\\$666";
 	} else {
 		recColor = "\\$f22";
 		labelColor = "\\$z";
 	}
-	
+
 	if (S_MenuBarFloatOnRight) {
 		label = S_AutosaveActive
-			? (recColor + Icons::Circle + labelColor +" REC (" + g_numSaved + ")")
+			? (recColor + Icons::Circle + labelColor + " REC (" + g_numSaved + ")")
 			: ("\\$dd3" + Icons::Pause + " REC");
 	} else {
 		label = S_AutosaveActive
 			? ("\\$f22" + Icons::Circle + "\\$z Autosaving Ghosts (" + g_numSaved + ")")
 			: ("\\$dd3" + Icons::Pause + "\\$z Autosave Ghosts");
 	}
-	
-	auto pos_orig = UI::GetCursorPos();
-	auto textSize = Draw::MeasureString(label);
+
+	auto pos = UI::GetCursorPos();
 	if (S_MenuBarFloatOnRight) {
-		UI::SetCursorPos(vec2(UI::GetWindowSize().x - textSize.x - S_MenuBarFloatOffset, pos_orig.y));
+	    auto textSize = Draw::MeasureString(label);
+		UI::SetCursorPos(vec2(UI::GetWindowSize().x - textSize.x - S_MenuBarFloatOffset - UI::GetStyleVarVec2(UI::StyleVar::WindowPadding).x * 1.5, pos.y));
 	}
 
 	bool wasClicked = UI::MenuItem(label, HotkeyStr);
-	
 
 	if (S_MenuBarFloatOnRight) {
-		UI::SetCursorPos(pos_orig);
+		UI::SetCursorPos(pos);
 	}
-	
+
     string hotkeyExtra = S_HotkeyEnabled ? "\n\\$bbbHotkey: " + HotkeyStr + "\\$z" : "";
     string mainTooltip = (S_AutosaveActive ? "Click to disable autosaving new ghosts.\nShift click to force-save a replay of all current personal ghosts." : "Click to start autosaving new ghosts.");
     AddSimpleTooltip(mainTooltip + hotkeyExtra);
@@ -267,8 +259,11 @@ bool S_MenuBarQuickToggleOn = false;
 [Setting category="Autosave Ghosts" name="Compact MenuBar" description="Show the menubar toggle on the right-hand side of the Overlay. You will need to manually adjust the offset to accomodate other plugins (like Clock)"]
 bool S_MenuBarFloatOnRight = false;
 
-[Setting category="Autosave Ghosts" drag name="Compact MenuBar Offset" description="How far over to put the recording indicator. A value of 200 works well for the Clock plugin."]
-int S_MenuBarFloatOffset = 0;
+[Setting category="Autosave Ghosts" drag name="Compact MenuBar Blink (.5Hz)" description="If compact MenuBar is enabled, the MenuBar item will darken and lighten on a .5 Hz cycle. No effect if compact MenuBar is disabled."]
+bool S_OscillateColors = true;
+
+[Setting category="Autosave Ghosts" drag min=0 max=3000 name="Compact MenuBar Offset" description="How far over to put the recording indicator. A value of 200 works well for the Clock plugin."]
+int S_MenuBarFloatOffset = 200;
 
 [Setting category="Autosave Ghosts" name="Disable for Local Runs" description="When checked, replays will not be autosaved for local runs."]
 bool S_DisableForLocal = false;
