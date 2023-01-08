@@ -43,6 +43,7 @@ void InitCoro() {
 
 void MainCoro() {
     if (!permissionsOkay) return;
+    startnew(WatchForValidationReplays);
     while (true) {
         yield();
         if (lastMap != CurrentMap) {
@@ -50,6 +51,52 @@ void MainCoro() {
             OnMapChange();
         }
     }
+}
+
+void WatchForValidationReplays() {
+    while (true) {
+        yield();
+        if (!S_SaveValidationReplays || !S_AutosaveActive) continue;
+        // check for editor too b/c we only care about validation replays here
+        auto editor = cast<CGameCtnEditorFree>(GetApp().Editor);
+        auto pgScript = cast<CSmArenaRulesMode>(GetApp().PlaygroundScript);
+        if (editor is null || pgScript is null) continue;
+        CheckForNewGhosts(pgScript.DataFileMgr);
+    }
+}
+
+dictionary seenValidationGhosts;
+uint lastNbValidationGhosts;
+void CheckForNewGhosts(CGameDataFileManagerScript@ dfm) {
+    if (lastNbValidationGhosts == dfm.Ghosts.Length) return;
+    lastNbValidationGhosts = dfm.Ghosts.Length;
+    trace('nb validation ghosts: ' + lastNbValidationGhosts);
+    CGameGhostScript@[] toSave;
+    for (uint i = 0; i < dfm.Ghosts.Length; i++) {
+        auto ghost = dfm.Ghosts[i];
+        if (seenValidationGhosts.Exists(ghost.IdName)) continue;
+        seenValidationGhosts[ghost.IdName] = true;
+        auto time = ghost.Result.Time;
+        if (seenValidationGhosts.Exists('time:' + time)) continue;
+        seenValidationGhosts['time:' + time] = true;
+        toSave.InsertLast(ghost);
+    }
+    for (uint i = 0; i < toSave.Length; i++) {
+        auto ghost = toSave[i];
+        auto savePath = GetValidationGhostFileName(ghost);
+        dfm.Replay_Save(savePath, GetApp().RootMap, ghost);
+        g_numSaved++;
+        NotifySaved(savePath);
+        yield();
+    }
+}
+
+const string GetValidationGhostFileName(CGameGhostScript@ ghost) {
+    string name = StripFormatCodes(ghost.Nickname);
+    auto time = ghost.Result.Time;
+    auto date = GetApp().PlaygroundScript.System.CurrentLocalDateText.Replace("/", "-").Replace(":", "-");
+    auto mapName = StripFormatCodes(GetApp().RootMap.MapInfo.Name);
+    return "AutosavedGhosts\\" + mapName + "-validation\\" + date + "-" + mapName + "-" + name + "-" + time + "ms.Replay.gbx";
 }
 
 void OnMapChange() {
@@ -249,6 +296,9 @@ settings
 
 [Setting category="Autosave Ghosts" name="Autosave Active?" description="While active, this plugin will autosave replays. When not active, it will sit in the background, biding its time, waiting for you to reactivate it."]
 bool S_AutosaveActive = true;
+
+[Setting category="Autosave Ghosts" name="Autosave Validation Replays?" description="When validating a map, validation replays will be automatically saved."]
+bool S_SaveValidationReplays = true;
 
 [Setting category="Autosave Ghosts" name="MenuBar Quick Toggle Off" description="Show a button in the main menu bar to quickly toggle autosaving off (stop saving replays)."]
 bool S_MenuBarQuickToggleOff = true;
