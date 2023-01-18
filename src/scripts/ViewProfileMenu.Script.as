@@ -3,152 +3,9 @@ const string VIEWPROFILEMENU_SCRIPT_TXT = """
 <script><!--
 
  #Const C_PageUID "ViewProfileMenu"
- #Include "Libs/Nadeo/MenuLibs/Common/Manialink/ManiaView2.Script.txt" as MV
- #Include "Libs/Nadeo/TMNext/TrackMania/Menu/Components/ProfilePlayerInfo.Script.txt" as ProfilePlayerInfo
-
- #Struct K_Event {
-	Integer Type;
-	Text AccountId;
-}
-
- #Struct K_State {
-	K_Event[] PendingEvents;
-	CMlFrame[] MapRankings;
-}
-
- #Const C_EventType_Select 0
- #Const C_IdProfile "ViewProfile_FromAngelscript"
+ #Include "Libs/Nadeo/MenuLibs/Common/Menu/Router_ML.Script.txt" as Router
 
  #Const C_Chris92_WSID "17868d60-b494-4b88-81df-f4ddfdae1cf1"
-
-
-Text GetProfileML() {
-	return MV::Create(
-		C_IdProfile, 3,
-		_"_"_"_
-<frame id="frame-global" z-index="10000">
-	<frame id="frame-profile" hidden="1">
-		<frameinstance
-			modelid="{{{ProfilePlayerInfo::C_Name}}}"
-			data-enable-players-pager="1"
-			data-enable-zone-selection="0"
-			data-enable-my-access-info="0"
-		/>
-	</frame>
-</frame>
-		_"_"_"_,
-		_"_"_"_
- #Struct K_State {
-	CMlFrame Frame_Profile;
-}
-		_"_"_"_,
-		_"_"_"_
-K_State DisplayProfile(K_State _State, Boolean _Display, Text UserId) {
-	declare K_State State = _State;
-
-    if (UserId != "") {
-        if (_Display && UserId != "") {
-            {{{ProfilePlayerInfo::P}}}SetUserAccountId(UserId);
-        }
-
-        {{{ProfilePlayerInfo::P}}}Enable(_Display);
-        State.Frame_Profile.Visible = _Display;
-    } else {
-        if (_Display) {
-            {{{ProfilePlayerInfo::P}}}SetUser(LocalUser);
-        }
-        {{{ProfilePlayerInfo::P}}}Enable(_Display);
-        State.Frame_Profile.Visible = _Display;
-    }
-
-    {{{ProfilePlayerInfo::P}}}EnablePlayersPager(False);
-    {{{ProfilePlayerInfo::P}}}EnableGarageButton(False);
-
-	return State;
-}
-K_State DisplayProfile(K_State _State, Boolean _Display) {
-	return DisplayProfile(_State, _Display, "");
-}
-
-K_State OpenProfile(K_State _State, Text _Id) {
-    return DisplayProfile(_State, True, _Id);
-	return _State;
-}
-
-***MainInit***
-***
-declare Text LibTMxSMRaceScoresTable_OpenProfileUserId for LocalUser = "";
-
-declare K_State State;
-***
-
-***MainStart***
-***
-State.Frame_Profile <=> (Page.GetFirstChild("frame-profile") as CMlFrame);
-
-LibTMxSMRaceScoresTable_OpenProfileUserId = "";
-
-{{{ProfilePlayerInfo::P}}}UseLocalEvents(True);
-State = DisplayProfile(State, False);
-***
-
-***MainLoop***
-***
-if (PageIsVisible) {
-	// Hide profile when opening the pause menu
-	if (False && State.Frame_Profile.Visible) {
-		State = DisplayProfile(State, False);
-	}
-
-	if (LibTMxSMRaceScoresTable_OpenProfileUserId != "") {
-		State = OpenProfile(State, LibTMxSMRaceScoresTable_OpenProfileUserId);
-		LibTMxSMRaceScoresTable_OpenProfileUserId = "";
-	}
-
-	if (State.Frame_Profile.Visible) {
-		foreach (Event in {{{ProfilePlayerInfo::P}}}PendingEvents) {
-			switch (Event.Type) {
-				case {{{ProfilePlayerInfo::P}}}C_EventType_Close: {
-					State = DisplayProfile(State, False);
-				}
-				// case {{{ProfilePlayerInfo::P}}}C_EventType_NextPlayer: {
-					// declare Integer Key = State.UserIds.keyof(Event.CurrentUserId);
-					// if (Key >= 0) {
-						// declare Ident UserId = NullId;
-						// if (State.UserIds.existskey(Key + 1)) {
-							// UserId = State.UserIds[Key + 1];
-						// } else if (State.UserIds.count > 0) {
-							// UserId = State.UserIds[0];
-						// }
-						// if (UserId != NullId && Scores.existskey(UserId)) {
-							// {{{ProfilePlayerInfo::P}}}SetUser(Scores[UserId].User);
-						// }
-					// }
-				// }
-				// case {{{ProfilePlayerInfo::P}}}C_EventType_PrevPlayer: {
-					// declare Integer Key = State.UserIds.keyof(Event.CurrentUserId);
-					// if (Key >= 0) {
-						// declare Ident UserId = NullId;
-						// if (State.UserIds.existskey(Key - 1)) {
-							// UserId = State.UserIds[Key - 1];
-						// } else if (State.UserIds.count > 0) {
-							// UserId = State.UserIds[State.UserIds.count - 1];
-						// }
-						// if (UserId != NullId && Scores.existskey(UserId)) {
-							// {{{ProfilePlayerInfo::P}}}SetUser(Scores[UserId].User);
-						// }
-					// }
-				// }
-			}
-		}
-	}
-}
-***
-		_"_"_"_,
-		[ProfilePlayerInfo::Component()],
-		[]
-	);
-}
 
 Void MLHookLog(Text msg) {
     SendCustomEvent("MLHook_LogMe_"^C_PageUID, [msg]);
@@ -180,22 +37,22 @@ Void CheckIncoming() {
 
 Void OnFirstLoad() {
     declare Text LibTMxSMRaceScoresTable_OpenProfileUserId for LocalUser = "";
-    LibTMxSMRaceScoresTable_OpenProfileUserId = C_Chris92_WSID;
+    MLHookLog("Nb UILayers: " ^ ParentApp.UILayers.count);
+    // create layer for profile screen
+    // declare profileLayer <=> ParentApp.UILayerCreate();
+    // profileLayer.ManialinkPage = GetProfileML();
+    // LibTMxSMRaceScoresTable_OpenProfileUserId = C_Chris92_WSID;
+	// Router::CreateRoute();
+	Router::Push(This, "/profile", ["AccountId" => C_Chris92_WSID]);
 }
 
 main() {
-    declare Text LibTMxSMRaceScoresTable_OpenProfileUserId for LocalUser = "";
-    MLHookLog("Nb UILayers: " ^ ParentApp.UILayers.count);
-    // create layer for profile screen
-    declare profileLayer <=> ParentApp.UILayerCreate();
-    profileLayer.ManialinkPage = GetProfileML();
-    LibTMxSMRaceScoresTable_OpenProfileUserId = C_Chris92_WSID;
-
     declare Integer LoopCounter = 0;
     MLHookLog("Starting view profile ML helper");
 
-    yield;
+    sleep(500);
     OnFirstLoad();
+    yield;
     while (True) {
         yield;
         LoopCounter += 1;
@@ -203,5 +60,6 @@ main() {
     }
 }
 
---></script></manialink>
+--></script>
+</manialink>
 """.Replace('_"_"_"_', '"""');

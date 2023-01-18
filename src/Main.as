@@ -7,6 +7,7 @@ void Main() {
     MLHook::RequireVersionApi('0.3.2');
     startnew(InitCoro);
     startnew(InjectMenu);
+    startnew(PatchProfilePage);
 }
 
 void CheckRequiredPermissions() {
@@ -45,6 +46,40 @@ void InjectMenu() {
 }
 
 
+
+void PatchProfilePage() {
+    auto app = cast<CGameManiaPlanet>(GetApp());
+    auto mlApp = app.MenuManager.MenuCustom_CurrentManiaApp;
+    if (mlApp.UILayers.Length == 0) throw("mlApp.UILayers.Length == 0");
+    for (uint i = mlApp.UILayers.Length - 1; i >= 0; i--) {
+        auto @layer = mlApp.UILayers[i];
+        if (!layer.ManialinkPageUtf8.SubStr(0, 100).Contains('<manialink name="Page_Profile" version="3">'))
+            continue;
+        auto currHash = Crypto::Sha256(layer.ManialinkPageUtf8);
+        string expectedHash = "694f25109245a3a87a6cd57c396937bdebe6925dbfa1a58e1f6dbdedd094d72a";
+        print("Current profile page hash: " + currHash);
+        if (currHash != expectedHash) {
+            warn("Current hash != expected hash. Skipping patching (likely already patched, or a game update).");
+            return;
+        }
+        string origML = layer.ManialinkPageUtf8;
+        string toReplace = """case Router_Router::C_Event_EnteringRoute: {
+			ComponentProfilePlayerInfo_SetUser(LocalUser);""";
+        string replacement = """case Router_Router::C_Event_EnteringRoute: {
+			declare Text[Text] Query = Router_Router::GetCurrentRouteQuery(This);
+			if (!Query.existskey("AccountId")) {
+				ComponentProfilePlayerInfo_SetUser(LocalUser);
+				//ComponentProfilePlayerInfo_EnableMyAccessButton(True);
+				ComponentProfilePlayerInfo_EnableGarageButton(True);
+				//ComponentProfilePlayerInfo_EnableZoneSelection(True);
+			} else {
+				ComponentProfilePlayerInfo_SetUserAccountId(Query["AccountId"]);
+				ComponentProfilePlayerInfo_EnableGarageButton(False);
+			}""";
+        layer.ManialinkPageUtf8 = origML.Replace(toReplace, replacement);
+        break;
+    }
+}
 
 void NotifySaved(const string &in filename) {
     string msg = "Saved ghost and replay: " + filename;
