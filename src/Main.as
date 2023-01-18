@@ -6,6 +6,7 @@ void Main() {
     CheckRequiredPermissions();
     MLHook::RequireVersionApi('0.3.2');
     startnew(InitCoro);
+    startnew(InjectMenu);
 }
 
 void CheckRequiredPermissions() {
@@ -30,9 +31,19 @@ void InitCoro() {
     MLHook::InjectManialinkToPlayground(PageUID, VIEWPROFILE_SCRIPT_TXT, true);
 }
 
-void ToML_ViewProfile(const string &in wsid) {
+void ToPlaygroundML_ViewProfile(const string &in wsid) {
     MLHook::Queue_MessageManialinkPlayground(PageUID, {"OpenProfile", wsid});
 }
+
+
+void InjectMenu() {
+    sleep(100);
+    auto app = cast<CGameManiaPlanet>(GetApp());
+    auto mlApp = app.MenuManager.MenuCustom_CurrentManiaApp;
+    auto layer = mlApp.UILayerCreate();
+    layer.ManialinkPage = VIEWPROFILEMENU_SCRIPT_TXT;
+}
+
 
 
 void NotifySaved(const string &in filename) {
@@ -79,6 +90,7 @@ string playerName;
 string playerWSID;
 
 void RenderInterface() {
+    return;
     UI::SetNextWindowSize(500, 500, UI::Cond::FirstUseEver);
     if (UI::Begin("View Profile")) {
         UI::Text("Player last selected: " + playerName + "   \\$888" + playerWSID);
@@ -94,7 +106,7 @@ void RenderInterface() {
                 auto p = cp.Arena.Players[ix];
                 playerName = p.User.Name;
                 playerWSID = p.User.WebServicesUserId;
-                ToML_ViewProfile(p.User.WebServicesUserId);
+                ToPlaygroundML_ViewProfile(p.User.WebServicesUserId);
             }
         }
     }

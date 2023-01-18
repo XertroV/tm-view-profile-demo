@@ -2,15 +2,12 @@ const string VIEWPROFILE_SCRIPT_TXT = """
 // one space indent otherwise they're treated as compiler preprocessor statements by openplanet
 // note: now done in pre-proc-scripts.py
  #Const C_PageUID "ViewProfile"
- #Include "TextLib" as TL
 
 
 // logging function, should be "MLHook_LogMe_" + PageUID
 Void MLHookLog(Text msg) {
     SendCustomEvent("MLHook_LogMe_"^C_PageUID, [msg]);
 }
-
-// state
 
 // from angelscript
 
@@ -31,7 +28,6 @@ Void CheckIncoming() {
             MLHookLog("Skipped unknown incoming event: " ^ Event);
             continue;
         }
-        // MLHookLog("Processed Incoming Event: "^Event[0]);
     }
     MLHook_Inbound_ViewProfile = [];
 }
@@ -50,4 +46,4 @@ main() {
         CheckIncoming();
     }
 }
-""";
+""".Replace('_"_"_"_', '"""');

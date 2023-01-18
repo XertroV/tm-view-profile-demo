@@ -19,8 +19,8 @@ def script_to_as_files(sf: Path):
     script_as_name = sf.stem + ".as"
     constant_name = sf.name.replace(".", "_").upper()
     lines = [f'const string {constant_name} = """']
-    lines.extend(map(proc_line, sf.read_text().splitlines()))
-    lines.append(f'""";')
+    lines.extend(map(proc_line, sf.read_text().replace('"""', '_"_"_"_').splitlines()))
+    lines.append(f'""".Replace(\'_"_"_"_\', \'"""\');')
     output_file = output_folder / script_as_name
     output_file.write_text("\n".join(lines))
     print(f"Processed: {sf} -- output: {output_file}")
