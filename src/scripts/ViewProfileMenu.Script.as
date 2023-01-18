@@ -1,5 +1,4 @@
 const string VIEWPROFILEMENU_SCRIPT_TXT = """
-
 <manialink name="Page_TestUILayers" version="3">
 <script><!--
 
